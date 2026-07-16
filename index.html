@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Шегіртке мен құмырсқа - Интерактивті сабақ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        .bg-gradient { background: linear-gradient(135deg, #f0f7f4 0%, #e8f1f5 100%); }
+        .card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #10b981;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gradient text-gray-800 leading-relaxed min-h-screen">
+
+<header class="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-50 transition-all">
+    <div class="container mx-auto px-4 py-4 flex justify-between items-center max-w-5xl">
+        <h1 class="text-xl font-bold text-green-700 flex items-center gap-2">
+            <span>📚</span> Әдебиет әлемі
+        </h1>
+        <nav class="hidden md:flex space-x-6 font-medium">
+            <a href="#comic" class="text-gray-600 hover:text-green-600 transition">Комикс</a>
+            <a href="#poem" class="text-gray-600 hover:text-green-600 transition">Мысал</a>
+            <a href="#quiz" class="text-gray-600 hover:text-green-600 transition">Тест</a>
+            <a href="#characters" class="text-gray-600 hover:text-green-600 transition">Кейіпкерлер</a>
+        </nav>
+        <button onclick="toggleSettings()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 p-2 rounded-full transition relative group" title="EmailJS параметрлері">
+            ⚙️ <span class="hidden md:inline text-xs font-semibold px-1">Баптаулар</span>
+        </button>
+    </div>
+</header>
+
+<main class="container mx-auto px-4 py-8 max-w-4xl">
+
+    <!-- EmailJS Settings Drawer -->
+    <div id="settings-panel" class="hidden fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl relative">
+            <button onclick="toggleSettings()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+            <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                ⚙️ EmailJS Параметрлері
+            </h3>
+            <p class="text-xs text-gray-500 mb-4">Жауаптарды электронды поштаңызға алу үшін EmailJS мәліметтерін толтырыңыз. Бұл деректер тек осы құрылғыда сақталады.</p>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Public Key (API Key)</label>
+                    <input type="text" id="emailjs-public-key" placeholder="мысалы: user_xxxxxxxxxxxxx" class="w-full p-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Service ID</label>
+                    <input type="text" id="emailjs-service-id" placeholder="мысалы: service_xxxxxxx" class="w-full p-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Template ID</label>
+                    <input type="text" id="emailjs-template-id" placeholder="мысалы: template_xxxxxxx" class="w-full p-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Мұғалімнің E-mail-і (қосымша)</label>
+                    <input type="email" id="teacher-email" placeholder="мысалы: mugalim@mail.ru" class="w-full p-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none">
+                </div>
+            </div>
+            <div class="mt-6 flex gap-3">
+                <button onclick="saveSettings()" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-xl font-semibold text-sm transition">Сақтау</button>
+                <button onclick="toggleSettings()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl font-semibold text-sm transition">Жабу</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Info Section -->
+    <section class="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-green-100">
+        <h3 class="text-lg font-bold text-green-800 mb-4 flex items-center gap-2">
+            👤 Оқушы туралы мәлімет
+        </h3>
+        <p class="text-xs text-gray-500 mb-3">Тапсырмаларды орындап болған соң, нәтижені мұғалімге жіберу үшін аты-жөніңізді жазыңыз:</p>
+        <div class="grid md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Аты-жөніңіз:</label>
+                <input type="text" id="student-name" placeholder="Мысалы: Асан Саматұлы" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-green-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Сыныбыңыз:</label>
+                <input type="text" id="student-class" placeholder="Мысалы: 5 'А' сыныбы" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-green-500 outline-none">
+            </div>
+        </div>
+    </section>
+
+    <!-- 1-Task: Comic Analysis -->
+    <section id="comic" class="mb-12 scroll-mt-20">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-950">1-тапсырма: Суретпен жұмыс (Комикс)</h2>
+        <div class="bg-white p-5 rounded-3xl shadow-md border border-gray-100">
+            <!-- Comic Image -->
+            <div class="bg-gray-50 rounded-2xl p-2 mb-6 flex justify-center">
+                <img src="watermarked_img_2953504583961094080.png" alt="Шегіртке мен Құмырсқа комиксі" onerror="this.onerror=null; this.src='https://placehold.co/800x600/f0fdf4/15803d?text=Шегіртке+мен+Құмырсқа+Комиксі';" class="rounded-xl shadow-sm border border-gray-100 max-h-[500px] object-contain">
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-6 p-5 bg-green-50/60 rounded-2xl border border-green-100/70">
+                <div>
+                    <label class="block font-semibold text-green-900 mb-2 text-sm md:text-base">1) Суреттен не көріп тұрсың?</label>
+                    <textarea id="task1-q1" class="w-full p-3 rounded-xl border border-green-200/60 focus:ring-2 focus:ring-green-500 outline-none resize-none" rows="3" placeholder="Өз ойыңды жаз..."></textarea>
+                </div>
+                <div>
+                    <label class="block font-semibold text-green-900 mb-2 text-sm md:text-base">2) Суретке қарап өлең не туралы деп ойлайсың?</label>
+                    <textarea id="task1-q2" class="w-full p-3 rounded-xl border border-green-200/60 focus:ring-2 focus:ring-green-500 outline-none resize-none" rows="3" placeholder="Өз ойыңды жаз..."></textarea>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Poem Text -->
+    <section id="poem" class="mb-12 scroll-mt-20">
+        <div class="bg-white p-8 rounded-3xl shadow-md border-t-8 border-green-600 relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-green-50 rounded-full opacity-50 pointer-events-none"></div>
+            <h2 class="text-2xl font-bold mb-1 text-center text-gray-900">Шегіртке мен құмырсқа</h2>
+            <p class="text-center text-sm text-gray-500 italic mb-8">Авторы: Абай Құнанбайұлы (И. Крыловтан)</p>
+            <div class="prose prose-lg mx-auto text-center space-y-6 text-gray-700 italic max-w-xl text-base md:text-lg">
+                <p>Шырылдауық шегіртке<br>Ыршып жүріп ән салған.<br>Көгалды қуып гөлайттап,<br>Қызықпен жүріп жазды алған.</p>
+                <p>Жаздыгүнгі жапырақтың<br>Бірінде тамақ, бірінде үй,<br>Жапырақ кетті, жаз кетті,<br>Күз болған соң кетті күй.</p>
+                <p>Жылы жаз жоқ, тамақ жоқ,<br>Өкінгеннен не пайда?<br>Суыққа тоңған, қарны ашқан<br>Ойын қайда, ән қайда?</p>
+                <p>Оныменен тұрмады,<br>Қар көрінді, қыс болды.<br>Сауықшыл сорлы бүкшиді,<br>Тым-ақ қиын іс болды.</p>
+                <p>Секіру қайда, сүрініп,<br>Қабағын қайғы жабады.<br>Саламда жатып дән жиған<br>Құмырсқаны іздеп табады.</p>
+                <p>Селкілдеп келіп жығылды,<br>Аяғына бас ұра:<br>= Қарағым, жылыт, тамақ бер,<br>Жаз шыққанша асыра!</p>
+                <p>Мұның, жаным, сөз емес,<br>Жаз өтерін білмеп пе ең?<br>Жаның үшін еш шаруа<br>Ала жаздай қылмап па ең?</p>
+                <p>Мен өзіңдей шаруашыл,<br>Жұмсақ илеу үйлі ме?<br>Көгалды қуып, ән салып,<br>Өлеңнен қолым тиді ме?</p>
+                <p>Қайтсін, қолы тимепті,<br>Өлеңші, әнші есіл ер!<br>Ала жаздай ән салсаң,<br>Селкілде де, билей бер!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2-Task: Quiz -->
+    <section id="quiz" class="mb-12 scroll-mt-20">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-950">2-тапсырма: Тест тапсырмалары</h2>
+        <div id="quiz-container" class="space-y-4">
+            <!-- Populated via JavaScript -->
+        </div>
+        <div class="text-center mt-6">
+            <button onclick="checkQuiz()" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full font-bold shadow-md transition transform hover:scale-[1.02] active:scale-[0.98]">
+                Нәтижені тексеру
+            </button>
+        </div>
+    </section>
+
+    <!-- 3-Task: Character Profiles -->
+    <section id="characters" class="mb-12 scroll-mt-20">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-950">3-тапсырма: Кейіпкерлерге мінездеме</h2>
+        <div class="grid md:grid-cols-2 gap-8">
+            <!-- Grasshopper -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-yellow-100 card flex flex-col justify-between">
+                <div>
+                    <div class="text-6xl text-center mb-4">🦗</div>
+                    <h3 class="text-lg font-bold text-center text-yellow-800 mb-3">Шегіртке</h3>
+                    <p class="text-sm text-gray-600 bg-yellow-50/75 p-4 rounded-xl italic leading-relaxed">
+                        Шегіртке — жеңілтек, еріншек және ұқыпсыз кейіпкер. Ол тек бүгінгі күннің рақатын ойлайды. Болашаққа ешқандай дайындық жасамайды, қиындық туғанда шарасыз күйге түседі.
+                    </p>
+                </div>
+                <div class="mt-4 pt-4 border-t border-yellow-50 text-center text-xs text-yellow-600 font-medium">
+                    Жауапсыздық пен жалқаулықтың бейнесі
+                </div>
+            </div>
+            <!-- Ant -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 card flex flex-col justify-between">
+                <div>
+                    <div class="text-6xl text-center mb-4">🐜</div>
+                    <h3 class="text-lg font-bold text-center text-blue-800 mb-3">Құмырсқа</h3>
+                    <p class="text-sm text-gray-600 bg-blue-50/75 p-4 rounded-xl italic leading-relaxed">
+                        Құмырсқа — еңбекқор, тиянақты және ақылды кейіпкер. Ол қыстың қамын жазда ойлайды. Өз еңбегімен нәтижеге жететін, тәртіпті жақсы көретін кейіпкер ретінде сипатталады.
+                    </p>
+                </div>
+                <div class="mt-4 pt-4 border-t border-blue-50 text-center text-xs text-blue-600 font-medium">
+                    Еңбекқорлық пен парасаттылықтың бейнесі
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Reflection & Encouragement -->
+    <section id="reflection" class="mb-12">
+        <div class="bg-amber-50/70 p-6 md:p-8 rounded-3xl border-2 border-dashed border-amber-200">
+            <h3 class="text-lg font-bold mb-3 text-amber-900 flex items-center gap-2">
+                Ойлан, тап! 💡
+            </h3>
+            <p class="mb-4 text-sm md:text-base text-gray-700">Қалай ойлайсың, шегіртке қыста тамақсыз қалмау үшін жазда не істеуі керек еді?</p>
+            <textarea id="reflection-text" class="w-full p-4 rounded-xl border border-amber-200 outline-none focus:ring-2 focus:ring-amber-500 mb-6 resize-none bg-white" rows="4" placeholder="Сенің жауабың..."></textarea>
+            
+            <div class="bg-white p-6 rounded-2xl shadow-sm text-center border border-amber-100">
+                <p class="text-2xl mb-2">🌟</p>
+                <p class="text-base font-semibold text-green-700">Балақай, қазір жаз мезгілі. Сен демалыс болса да, сабақ оқып еңбектеніп жатсың. Жарайсың!</p>
+                <p class="text-xs md:text-sm text-gray-500 mt-2 italic">Осылай оқу оқып, еңбектенсең болашақта үлкен армандарыңа жетесің! ✨</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Send Results to Teacher Section -->
+    <section class="mb-12 bg-emerald-800 text-white p-6 md:p-8 rounded-3xl shadow-lg relative overflow-hidden">
+        <div class="absolute right-0 bottom-0 translate-y-6 translate-x-6 opacity-10 text-9xl pointer-events-none">✉️</div>
+        <div class="relative z-10 max-w-xl">
+            <h3 class="text-xl md:text-2xl font-bold mb-2 flex items-center gap-2">
+                📬 Жауаптарыңды мұғалімге жібер
+            </h3>
+            <p class="text-sm text-emerald-100 mb-6">
+                Барлық сұрақтар мен тапсырмаларды орындап болған соң, төмендегі батырманы басып, нәтижені мұғалімнің электронды поштасына тікелей жолда!
+            </p>
+            <div id="submit-status-container" class="space-y-4">
+                <button onclick="sendToTeacher()" id="send-btn" class="bg-white text-emerald-900 hover:bg-emerald-50 px-8 py-3.5 rounded-xl font-bold shadow-md transition flex items-center justify-center gap-2 w-full md:w-auto">
+                    <span>Жауаптарды мұғалімге жолдау</span> 🚀
+                </button>
+                <p id="submission-feedback" class="text-sm font-semibold hidden"></p>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<footer class="bg-white border-t py-8 text-center text-gray-500 text-sm">
+    <div class="container mx-auto px-4">
+        <p>&copy; 2026 Оқушыларға арналған интерактивті сабақтар</p>
+        <p class="text-xs text-gray-400 mt-1">Абай Құнанбайұлы мұрасын зерделеуге арналған оқу порталы</p>
+    </div>
+</footer>
+
+<script>
+    // Global State for Quiz Score
+    let finalQuizScore = "";
+
+    const questions = [
+        {
+            q: "Шегіртке жаз бойы немен айналысты?",
+            a: ["Еңбек етті", "Ән салып, ыршып жүрді", "Дән жинады"],
+            correct: 1
+        },
+        {
+            q: "Күз келгенде шегірткенің күйі не болды?",
+            a: ["Тамағы мен үйі болмады", "Көңілді болды", "Қысқа дайын болды"],
+            correct: 0
+        },
+        {
+            q: "Шегіртке кімнен көмек сұрады?",
+            a: ["Көбелектен", "Құмырсқадан", "Арадан"],
+            correct: 1
+        },
+        {
+            q: "Құмырсқа шегірткеге не деді?",
+            a: ["«Кір, төрлет!»", "«Саған көмектесе алмаймын»", "«Ала жаздай ән салсаң, билей бер»"],
+            correct: 2
+        },
+        {
+            q: "Бұл мысал оқырманды неге үйретеді?",
+            a: ["Ән айтуға", "Еңбекқор болуға", "Секіруге"],
+            correct: 1
+        }
+    ];
+
+    // Initialize Quiz
+    function initQuiz() {
+        const container = document.getElementById('quiz-container');
+        container.innerHTML = "";
+        questions.forEach((item, index) => {
+            const qDiv = document.createElement('div');
+            qDiv.className = 'bg-white p-5 rounded-2xl shadow-sm border border-gray-100 transition duration-300 hover:border-green-100';
+            qDiv.innerHTML = `
+                <p class="font-bold mb-3 text-gray-900 text-sm md:text-base">${index + 1}. ${item.q}</p>
+                <div class="grid gap-2">
+                    ${item.a.map((opt, i) => `
+                        <label class="flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-50 cursor-pointer border border-gray-100 transition text-sm">
+                            <input type="radio" name="q${index}" value="${i}" class="w-4 h-4 text-green-600 focus:ring-green-500">
+                            <span class="text-gray-700">${opt}</span>
+                        </label>
+                    `).join('')}
+                </div>
+            `;
+            container.appendChild(qDiv);
+        });
+    }
+
+    // Check Quiz Answers
+    function checkQuiz() {
+        let score = 0;
+        let allAnswered = true;
+
+        questions.forEach((item, index) => {
+            const selected = document.querySelector(`input[name="q${index}"]:checked`);
+            if (!selected) {
+                allAnswered = false;
+                return;
+            }
+            const labels = document.getElementsByName(`q${index}`);
+            labels.forEach(lbl => {
+                const labelElement = lbl.parentElement;
+                labelElement.classList.remove('bg-green-50', 'border-green-500', 'bg-red-50', 'border-red-500');
+            });
+
+            if (parseInt(selected.value) === item.correct) {
+                score++;
+                selected.parentElement.classList.add('bg-green-50', 'border-green-500', 'text-green-900');
+            } else {
+                selected.parentElement.classList.add('bg-red-50', 'border-red-500', 'text-red-900');
+            }
+        });
+
+        finalQuizScore = `${score} / ${questions.length}`;
+
+        if (!allAnswered) {
+            showModal("Ескерту", "Барлық сұрақтарға жауап беріңіз!", "warning");
+            return;
+        }
+
+        const message = `Сен ${questions.length} сұрақтың ${score}-іне дұрыс жауап бердің! ${score === 5 ? 'Өте жақсы! 🌟' : 'Жақсы, тағы бір қайталап көр. 😊'}`;
+        showModal("Тест Нәтижесі", message, "success");
+    }
+
+    // Toggle Settings panel
+    function toggleSettings() {
+        const panel = document.getElementById('settings-panel');
+        panel.classList.toggle('hidden');
+    }
+
+    // Load saved settings from localStorage on load
+    function loadSettings() {
+        document.getElementById('emailjs-public-key').value = localStorage.getItem('emailjs_public_key') || 'HA_ZSM_oC7sXcWOO3';
+        document.getElementById('emailjs-service-id').value = localStorage.getItem('emailjs_service_id') || 'service_il87nsh';
+        document.getElementById('emailjs-template-id').value = localStorage.getItem('emailjs_template-id') || 'template_e30siff';
+        document.getElementById('teacher-email').value = localStorage.getItem('teacher_email') || '';
+
+        // Initialize EmailJS if key exists
+        const pubKey = localStorage.getItem('emailjs_public_key') || 'HA_ZSM_oC7sXcWOO3';
+        if (pubKey && typeof emailjs !== 'undefined') {
+            emailjs.init({ publicKey: pubKey });
+        }
+    }
+
+    // Save settings to localStorage
+    function saveSettings() {
+        const pubKey = document.getElementById('emailjs-public-key').value.trim();
+        const serviceId = document.getElementById('emailjs-service-id').value.trim();
+        const templateId = document.getElementById('emailjs-template-id').value.trim();
+        const teacherEmail = document.getElementById('teacher-email').value.trim();
+
+        if (!pubKey || !serviceId || !templateId) {
+            showModal("Ескерту", "Барлық негізгі өрістерді толтырыңыз!", "warning");
+            return;
+        }
+
+        localStorage.setItem('emailjs_public_key', pubKey);
+        localStorage.setItem('emailjs_service_id', serviceId);
+        localStorage.setItem('emailjs_template-id', templateId);
+        localStorage.setItem('teacher_email', teacherEmail);
+
+        if (typeof emailjs !== 'undefined') {
+            emailjs.init({ publicKey: pubKey });
+        }
+
+        showModal("Сәтті", "Параметрлер сақталды және EmailJS іске қосылды!", "success");
+        toggleSettings();
+    }
+
+    // Send form payload to Teacher via EmailJS
+    function sendToTeacher() {
+        const pubKey = localStorage.getItem('emailjs_public_key') || 'HA_ZSM_oC7sXcWOO3';
+        const serviceId = localStorage.getItem('emailjs_service_id') || 'service_il87nsh';
+        const templateId = localStorage.getItem('emailjs_template-id') || 'template_e30siff';
+
+        if (!pubKey || !serviceId || !templateId) {
+            showModal(
+                "Баптау қажет", 
+                "Жауаптарды жолдау үшін алдымен оң жақ жоғарғы бұрыштағы ⚙️ Баптаулар бөлімінде өзіңіздің EmailJS кілттеріңізді енгізіп сақтауыңыз керек.", 
+                "info"
+            );
+            return;
+        }
+
+        const studentName = document.getElementById('student-name').value.trim();
+        const studentClass = document.getElementById('student-class').value.trim();
+        const task1_q1 = document.getElementById('task1-q1').value.trim();
+        const task1_q2 = document.getElementById('task1-q2').value.trim();
+        const reflection = document.getElementById('reflection-text').value.trim();
+
+        if (!studentName || !studentClass) {
+            showModal("Мәлімет қажет", "Жолдау үшін алдымен оқушы туралы мәліметті (аты-жөнін және сыныбын) толтырыңыз!", "warning");
+            return;
+        }
+
+        if (!finalQuizScore) {
+            showModal("Тест орындалмады", "Мұғалімге жібермес бұрын 2-тапсырманың тестін орындап, 'Нәтижені тексеру' батырмасын басыңыз.", "warning");
+            return;
+        }
+
+        // Prepare button loading state
+        const sendBtn = document.getElementById('send-btn');
+        const feedback = document.getElementById('submission-feedback');
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = `<div class="loader"></div> <span>Жіберілуде...</span>`;
+
+        const templateParams = {
+            student_name: studentName,
+            student_class: studentClass,
+            task1_q1: task1_q1 || "Жауап берілмеді",
+            task1_q2: task1_q2 || "Жауап берілмеді",
+            quiz_score: finalQuizScore,
+            reflection: reflection || "Жауап берілмеді",
+            to_email: localStorage.getItem('teacher_email') || ""
+        };
+
+        emailjs.send(serviceId, templateId, templateParams)
+            .then(() => {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = `<span>Жауаптарды мұғалімге жолдау</span> 🚀`;
+                feedback.className = "text-sm font-semibold text-emerald-100 mt-2 block";
+                feedback.innerText = "🎉 Жауаптарың мұғалімге сәтті жіберілді! Жарайсың!";
+                showModal("Сәтті жіберілді!", "Сенің жауаптарың мұғалімнің электронды поштасына сәтті жеткізілді. Керемет!", "success");
+            })
+            .catch((error) => {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = `<span>Жауаптарды мұғалімге жолдау</span> 🚀`;
+                feedback.className = "text-sm font-semibold text-red-200 mt-2 block";
+                feedback.innerText = "❌ Жіберу кезінде қателік кетті. Енгізілген баптауларды тексеріңіз.";
+                showModal("Қателік", "EmailJS арқылы жіберу сәтсіз аяқталды: " + JSON.stringify(error), "error");
+            });
+    }
+
+    // Modal Utility
+    function showModal(title, text, type) {
+        const existingModal = document.getElementById('custom-modal');
+        if (existingModal) existingModal.remove();
+
+        let icon = "🔔";
+        if (type === "success") icon = "✅";
+        if (type === "warning") icon = "⚠️";
+        if (type === "error") icon = "❌";
+        if (type === "info") icon = "ℹ️";
+
+        const modalDiv = document.createElement('div');
+        modalDiv.id = 'custom-modal';
+        modalDiv.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]';
+        modalDiv.innerHTML = `
+            <div class="bg-white p-6 md:p-8 rounded-3xl max-w-md w-full text-center shadow-2xl transition-all transform scale-100">
+                <div class="text-5xl mb-4">${icon}</div>
+                <h3 class="text-xl font-bold mb-3 text-gray-900">${title}</h3>
+                <p class="text-sm md:text-base text-gray-600 mb-6 leading-relaxed">${text}</p>
+                <button onclick="document.getElementById('custom-modal').remove()" class="bg-green-600 hover:bg-green-700 text-white px-8 py-2.5 rounded-xl font-bold transition w-full md:w-auto">
+                    Жарайды
+                </button>
+            </div>
+        `;
+        document.body.appendChild(modalDiv);
+    }
+
+    window.onload = function() {
+        initQuiz();
+        loadSettings();
+    };
+</script>
+
+</body>
+</html>
